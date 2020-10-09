@@ -1,5 +1,5 @@
 # Stonkbot
-## A Discord bot for a Stock Market Trading game
+## A Discord bot for a Stock Market trading game
 
 ### Requirements
 - Python (v3+)
@@ -18,3 +18,16 @@
     - Track portfolio worth over time
 - End a game instance
     - Track player vs. player performance over the duration of the game period.
+    
+    
+### Update log
+
+- 10/8/20 - 10/16/20
+    - Goals:
+        - Ticker price lookup
+        - Initial money
+        - Game instance creation
+        - Database creation
+        
+    - Started development. Will focus on the creation of a "Game" for now. 
+        
