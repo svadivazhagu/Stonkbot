@@ -37,6 +37,8 @@ class MyClient(discord.Client):
                 company_name = company_profile['name'].split(' ')[0]
             except KeyError:
                 print(ticker)
+                await message.channel.send('Ticker not found. Try again.')
+
 
             color = 0x00ff00
 
