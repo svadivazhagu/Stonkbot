@@ -1,6 +1,7 @@
 import discord, finnhub, datetime
 from decouple import config
 
+LOGO_API = 'https://logo.clearbit.com/'
 
 class MyClient(discord.Client):
     # setting up finnhub client
@@ -31,15 +32,24 @@ class MyClient(discord.Client):
             date = str(month) + '/' + str(day)
 
             ticker = message.content.split(' ')[1].upper()
-            embed = discord.Embed(title='Stock Ticker Quote', description='USD Quote for ' + ticker + ' on ' + date +
+            company_profile = finnhub_client.company_profile2(symbol=ticker)
+            try:
+                company_name = company_profile['name'].split(' ')[0]
+            except KeyError:
+                print(ticker)
+            embed = discord.Embed(title='Stock Ticker Quote', description='USD Quote for ' + company_name + ' on ' + date +
                                                                           ' at '
                                                                           + hour_min, color=0x00ff00)
             quote = finnhub_client.quote(ticker)
+
+
+            embed.set_thumbnail(url=company_profile['logo'])
             embed.add_field(name='Current', value='$' + str(quote['c']))
             embed.add_field(name='Open', value='$' + str(quote['o']))
             embed.add_field(name='High', value='$' + str(quote['h']))
             embed.add_field(name='Low', value='$' + str(quote['l']))
             embed.add_field(name='Previous Close', value='$' + str(quote['pc']))
+
 
             await message.channel.send(embed=embed)
 
