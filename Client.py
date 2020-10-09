@@ -1,7 +1,6 @@
 import discord, finnhub, datetime
 from decouple import config
 
-LOGO_API = 'https://logo.clearbit.com/'
 
 class MyClient(discord.Client):
     # setting up finnhub client
