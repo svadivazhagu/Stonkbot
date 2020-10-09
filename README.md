@@ -6,7 +6,7 @@
      - Requests module
 - Discord.py module
 - SQLite python module
-
+- Finnhub python module (alternative - use Finnhub API)
 
 ### Features
 
