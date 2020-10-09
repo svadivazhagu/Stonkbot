@@ -37,10 +37,20 @@ class MyClient(discord.Client):
                 company_name = company_profile['name'].split(' ')[0]
             except KeyError:
                 print(ticker)
-            embed = discord.Embed(title='Stock Ticker Quote', description='USD Quote for ' + company_name + ' on ' + date +
-                                                                          ' at '
-                                                                          + hour_min, color=0x00ff00)
+
+            color = 0x00ff00
+
             quote = finnhub_client.quote(ticker)
+
+            if quote['c'] >= quote['pc']:
+                color = 0x00ff00
+            else:
+                color = 0xff0000
+
+            embed = discord.Embed(title='Stock Ticker Quote',
+                                  description='USD Quote for ' + company_name + ' on ' + date +
+                                              ' at '
+                                              + hour_min, color=color)
 
 
             embed.set_thumbnail(url=company_profile['logo'])
