@@ -52,8 +52,18 @@ class MyClient(discord.Client):
         except (ValueError, IndexError):
             return False
 
-    def portfolio(self, user):
+    def accSummary(self, user):
         return
+
+    def portfolio(self, user):
+        output = {}
+        output['title'] = 'Account Summary for ' + str(user)
+        output['description'] = 'Total Value'
+        field1 = {'name':'Liquid', 'value':balance}
+        field2 = {'name':'Assets', 'value': monetaryStockVal}
+        field3 = {'name':'Top Stock', 'value':ticker}
+
+        return output
 
     def quote(self, ticker):
         return

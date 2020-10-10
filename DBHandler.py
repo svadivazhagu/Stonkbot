@@ -32,6 +32,7 @@ class DBHandler:
 
         self.dbconn.execute('UPDATE UserData SET balance=? WHERE userid=?', (balance-cost,user))
         self.dbconn.commit()
+        return True
 
     def confirmUser(self, user):
         if(self.dbconn.execute('SELECT * FROM UserData WHERE userid=?', (user,)).fetchone()):
