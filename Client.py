@@ -1,6 +1,8 @@
 import discord, finnhub, datetime
 import sqlite3
+import DBHandler
 from decouple import config
+from pytz import timezone
 
 
 class MyClient(discord.Client):
@@ -8,12 +10,15 @@ class MyClient(discord.Client):
 
     def __init__(self):
         super().__init__()
-        self.dbconn = sqlite3.connect('sexystonks.db')
+        self.dbh = DBHandler.DBHandler('sexystonks.db')
         self.finhubClient = finnhub.Client(api_key=config('API_TOKEN'))
         self.initBalance = 10000
 
-    def confirmUser(self, user):
-        if(self.dbconn.cursor().execute('SELECT * FROM UserData WHERE userid=?', (user,)).fetchone()):
+    def isBuyingOpen(self):
+        ttime = datetime.datetime.now(tz=datetime.timezone.utc)
+        openTime = datetime.datetime(year=ttime.year, month=ttime.month, day=ttime.day, hour=9, minute=30, tzinfo=timezone('US/Eastern'))
+        closeTime = datetime.datetime(year=ttime.year, month=ttime.month, day=ttime.day, hour=16, tzinfo=timezone('US/Eastern'))
+        if((ttime > openTime) & (ttime < closeTime)):
             return True
         else:
             return False
@@ -22,22 +27,12 @@ class MyClient(discord.Client):
         try:
             shares = int(shares)
             currPrice = self.finhubClient.quote(ticker)['c']
-            if(~currPrice):
+
+            if(currPrice==0):
                 return False
             
             amount = currPrice*shares
-            balance = self.dbconn.cursor().execute('SELECT balance FROM UserData WHERE userid=?', (user,)).fetchone()[0]
-            newBalance = balance-amount
-
-            self.dbconn.cursor().execute('UPDATE UserData SET balance=? WHERE userid=?', (newBalance,user))
-            currShares = self.dbconn.cursor().execute('SELECT shares FROM Portfolios WHERE userid=? AND ticker=?',(user, ticker)).fetchone()
-
-            if(currShares):
-                self.dbconn.cursor().execute('UPDATE Portfolios SET shares=? WHERE userid=? AND ticker=?', (currShares[0]+shares, user, ticker))
-            else:
-                self.dbconn.cursor().execute('INSERT INTO Portfolios VALUES (?, ?, ?)', (user, ticker, shares))
-
-            self.dbconn.commit()
+            self.dbh.updateBuySell(user, ticker, amount, shares, 'buy')
             return True
 
         except (ValueError, IndexError):
@@ -47,23 +42,11 @@ class MyClient(discord.Client):
         try:
             shares = int(shares)
             currPrice = self.finhubClient.quote(ticker)['c']
-            if(~currPrice):
+            if(currPrice==0):
                 return False
             
             amount = currPrice*shares
-            balance = self.dbconn.cursor().execute('SELECT balance FROM UserData WHERE userid=?', (user,)).fetchone()[0]
-            newBalance = balance+amount
-            currShares = self.dbconn.cursor().execute('SELECT * FROM Portfolios WHERE userid=? AND ticker=?',(user, ticker)).fetchone()
-
-            if(currShares[2]<shares):
-                return False
-            elif(currShares[2] == shares):
-                self.dbconn.cursor().execute('DELETE FROM Portfolios WHERE userid=? AND ticker=?', (user, ticker))
-            else:
-                self.dbconn.cursor().execute('UPDATE Portfolios SET shares=? WHERE userid=? AND ticker=?', (currShares[2]-shares, user, ticker))
-
-            self.dbconn.cursor().execute('UPDATE UserData SET balance=? WHERE userid=?', (newBalance,user))
-            self.dbconn.commit()
+            self.dbh.updateBuySell(user, ticker, amount, shares, 'sell')
             return True
 
         except (ValueError, IndexError):
@@ -78,28 +61,38 @@ class MyClient(discord.Client):
     async def on_ready(self):
         print('Logged on as', self.user)
 
+    #----------------------------core body of reactivity, create commands, etc here
     async def on_message(self, message):
-        # don't respond to ourselves
+        #don't respond to ourselves
+        #be careful about awaiting everything and not returning, might evaluate more than one expects
         if message.author == self.user:
             return
 
+        #--------------------------------create a new stock market game------------------------------
+        #reset amounts, create new tables, etc
         if message.content == '$new':
             await message.channel.send('Creating new Stock Market Game')
 
+        #-----------------------------------------register a new player------------------------------
+        #create an entry in the UserData table, allows them to play the game
         if message.content.startswith('$register'):
-            if(self.confirmUser(message.author.id)):
+            if(self.dbh.confirmUser(message.author.id)):
                 await message.channel.send('already exist')
             else:
-                self.dbconn.cursor().execute('INSERT INTO UserData VALUES (?, ?)', (message.author.id, self.initBalance))
-                self.dbconn.commit()
-                await message.channel.send('created')
+                self.dbh.createUser(message.author.id, self.initBalance)
 
+        #------------------------------------------buy shares in a stock---------------------------
+        #pulls stock cost and buys X number
         if message.content.startswith('$buy'):
-            if(self.confirmUser(message.author.id)):
+            if(not self.isBuyingOpen()):
+                await message.channel.send('It\'s too late! Try again tomorrow')
+                return
+            if(self.dbh.confirmUser(message.author.id)):
                 params = message.content.split(' ')
                 #figure out error handling
                 if(len(params) != 3):
                     await message.channel.send('Bad format: submit buy orders with \"$buy TICKER NUMSHARES\"')
+                    return
 
                 buySuccess = self.buy(message.author.id, params[1], params[2])
                 if(buySuccess):
@@ -109,12 +102,18 @@ class MyClient(discord.Client):
             else:
                 await message.channel.send('You don\'t exist, say \"$register\" to join')
 
+        #----------------------------------------sell shares of a stock-------------------------------
+        #pulls stock cost and sells X number
         if message.content.startswith('$sell'):
-            if(self.confirmUser(message.author.id)):
+            if(not self.isBuyingOpen()):
+                await message.channel.send('It\'s too late! Try again tomorrow')
+                return
+            if(self.dbh.confirmUser(message.author.id)):
                 params = message.content.split(' ')
                 #figure out error handling
                 if(len(params) != 3):
                     await message.channel.send('Bad format: submit buy orders with \"$sell TICKER NUMSHARES\"')
+                    return
                 
                 buySuccess = self.sell(message.author.id, params[1], params[2])
                 if(buySuccess):
@@ -123,10 +122,15 @@ class MyClient(discord.Client):
                     await message.channel.send('Sell Unsuccessful :(')
             else:
                 await message.channel.send('You don\'t exist, say \"$register\" to join')
+
+
+        if message.content.startswith('$balance'):
+            #get current money
+            await message.channel.send('You have ')
             
 
-        # Functionality for if they want a ticker price. Embed message to look pretty.
-
+        #--------------Functionality for if they want a ticker price. Embed message to look pretty.---------
+        #get that quote
         if message.content.startswith('$quote'):
             # Get the current date/time
             now = datetime.datetime.now()
@@ -146,6 +150,7 @@ class MyClient(discord.Client):
             except KeyError:
                 print(ticker)
                 await message.channel.send('Ticker not found. Try again.')
+                return
 
 
             color = 0x00ff00
