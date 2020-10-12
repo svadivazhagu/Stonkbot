@@ -132,6 +132,9 @@ class MyClient(discord.Client):
         #---------------------------------------return value of assets---------------------------
         # prints liquid money and all stocks 
         if message.content.startswith('$balance'):
+            if(not self.dbh.confirmUser(message.author.id)):
+                await message.channel.send('You don\'t exist, say \"$register\" to join')
+                return
             stonks = self.dbh.retrieveStocks(message.author.id)
             balance = self.dbh.retrieveBalance(message.author.id)
             total = 0
@@ -154,15 +157,15 @@ class MyClient(discord.Client):
                 'fields':[
                     {
                         'name':'Liquid Amount',
-                        'value':str(balance)
+                        'value':str(round(balance, 2))
                     },
                     {
                         'name':'Stock Amount',
-                        'value':str(total)
+                        'value':str(round(total, 2))
                     },
                     {
                         'name':'Best Stock',
-                        'value':bigK+': worth $'+str(bigV)
+                        'value':bigK+': worth $'+str(round(bigV, 2))
                     },
                 ]
                 }
