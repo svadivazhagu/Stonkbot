@@ -15,10 +15,12 @@ class MyClient(discord.Client):
         self.initBalance = 10000
 
     def isBuyingOpen(self):
+        return True
         ttime = datetime.datetime.now(tz=datetime.timezone.utc)
+        weekday = ttime.weekday()
         openTime = datetime.datetime(year=ttime.year, month=ttime.month, day=ttime.day, hour=9, minute=30, tzinfo=timezone('US/Eastern'))
         closeTime = datetime.datetime(year=ttime.year, month=ttime.month, day=ttime.day, hour=16, tzinfo=timezone('US/Eastern'))
-        if((ttime > openTime) & (ttime < closeTime)):
+        if((ttime > openTime) & (ttime < closeTime) & (weekday!=5) & (weekday!=6)):
             return True
         else:
             return False
@@ -56,14 +58,8 @@ class MyClient(discord.Client):
         return
 
     def portfolio(self, user):
-        output = {}
-        output['title'] = 'Account Summary for ' + str(user)
-        output['description'] = 'Total Value'
-        field1 = {'name':'Liquid', 'value':balance}
-        field2 = {'name':'Assets', 'value': monetaryStockVal}
-        field3 = {'name':'Top Stock', 'value':ticker}
-
-        return output
+        output = self.dbh.retrieveStocks(user)
+        print(output)
 
     def quote(self, ticker):
         return
@@ -133,10 +129,46 @@ class MyClient(discord.Client):
             else:
                 await message.channel.send('You don\'t exist, say \"$register\" to join')
 
-
+        #---------------------------------------return value of assets---------------------------
+        # prints liquid money and all stocks 
         if message.content.startswith('$balance'):
-            #get current money
-            await message.channel.send('You have ')
+            stonks = self.dbh.retrieveStocks(message.author.id)
+            balance = self.dbh.retrieveBalance(message.author.id)
+            total = 0
+            bigK = 'AAAA'
+            bigV = 0
+            for k, v in stonks.items():
+                price = self.finhubClient.quote(k)['c']
+                total += price*v
+                if(price*v>bigV):
+                    bigK = k
+                    bigV = price*v
+
+            embed = discord.Embed.from_dict(
+                {
+                'title':'Balance of '+str(message.author),
+                'description': 'Total value of assets: ' + str(balance+total),
+                'thumbnail':{
+                    'url':str(message.author.avatar_url)
+                },
+                'fields':[
+                    {
+                        'name':'Liquid Amount',
+                        'value':str(balance)
+                    },
+                    {
+                        'name':'Stock Amount',
+                        'value':str(total)
+                    },
+                    {
+                        'name':'Best Stock',
+                        'value':bigK+': worth $'+str(bigV)
+                    },
+                ]
+                }
+            )
+
+            await message.channel.send(embed=embed)
             
 
         #--------------Functionality for if they want a ticker price. Embed message to look pretty.---------

@@ -6,7 +6,7 @@ class DBHandler:
         self.dbconn = sqlite3.connect(name)
 
     def updateBuySell(self, user, ticker, cost, shares, type):
-        balance = self.dbconn.execute('SELECT balance FROM UserData WHERE userid=?', (user,)).fetchone()[0]
+        balance = self.retrieveBalance(user)
         currShares = self.dbconn.execute('SELECT shares FROM Portfolios WHERE userid=? AND ticker=?',(user, ticker)).fetchone()
         if(currShares):
             currShares = currShares[0]
@@ -43,6 +43,19 @@ class DBHandler:
     def createUser(self, user, balance):
         self.dbconn.execute('INSERT INTO UserData VALUES (?, ?)', (user, balance))
         self.dbconn.commit()
+        return True
+
+    def retrieveStocks(self, user):
+        stonks = self.dbconn.execute('SELECT * FROM Portfolios WHERE userid=?', (user, )).fetchall()
+        output = {}
+        for row in stonks:
+            output[row[1]] = row[2]
+        return output
+
+    def retrieveBalance(self, user):
+        output = self.dbconn.execute('SELECT balance FROM UserData WHERE userid=?', (user, )).fetchone()[0]
+        return output
+
 
 
     
