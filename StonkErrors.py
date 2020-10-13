@@ -15,3 +15,6 @@ class MarketCloseError(Error):
 
 class UnrecognizedPlayerError(Error):
     pass
+
+class UnfoundTickerError(Error):
+    pass

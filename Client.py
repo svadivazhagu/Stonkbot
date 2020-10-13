@@ -76,50 +76,18 @@ class MyClient(discord.Client):
         #get that quote
         if message.content.startswith('$quote'):
             # Get the current date/time
-            now = datetime.datetime.now()
-
-            month, day, hour, minute = '{:02d}'.format(now.month), \
-                                       '{:02d}'.format(now.day), \
-                                       '{:02d}'.format(now.hour), \
-                                       '{:02d}'.format(now.minute)
-
-            hour_min = str(hour) + ':' + str(minute)
-            date = str(month) + '/' + str(day)
-
-            ticker = message.content.split(' ')[1].upper()
-            company_profile = self.finhubClient.company_profile2(symbol=ticker)
+            params = message.content.split(' ')
+            if(len(params)!=2):
+                await message.channel.send('Bad format: request quotes with \"$quote TICKER\"')
+                return
+            ticker = params[1]
             try:
-                company_name = company_profile['name'].split(' ')[0]
+                embedDict = self.stonkState.quote(ticker)
             except KeyError:
-                print(ticker)
-                await message.channel.send('Ticker not found. Try again.')
+                await message.channel.send('Invalid ticker')
                 return
 
-
-            color = 0x00ff00
-
-            quote = self.finhubClient.quote(ticker)
-
-            if quote['c'] >= quote['pc']:
-                color = 0x00ff00
-            else:
-                color = 0xff0000
-
-            embed = discord.Embed(title='Stock Ticker Quote',
-                                  description='USD Quote for ' + company_name + ' on ' + date +
-                                              ' at '
-                                              + hour_min, color=color)
-
-
-            embed.set_thumbnail(url=company_profile['logo'])
-            embed.add_field(name='Current', value='$' + str(quote['c']))
-            embed.add_field(name='Open', value='$' + str(quote['o']))
-            embed.add_field(name='High', value='$' + str(quote['h']))
-            embed.add_field(name='Low', value='$' + str(quote['l']))
-            embed.add_field(name='Previous Close', value='$' + str(quote['pc']))
-
-
-            await message.channel.send(embed=embed)
+            await message.channel.send(embed=discord.Embed.from_dict(embedDict))
 
 
 client = MyClient()

@@ -138,6 +138,62 @@ class Stonks:
 
         return embedDict
 
+    def quote(self, ticker):
+        now = datetime.datetime.now()
+
+        month, day, hour, minute = '{:02d}'.format(now.month), \
+                                    '{:02d}'.format(now.day), \
+                                    '{:02d}'.format(now.hour), \
+                                    '{:02d}'.format(now.minute)
+
+        hour_min = str(hour) + ':' + str(minute)
+        date = str(month) + '/' + str(day)
+
+        company_profile = self.finhubClient.company_profile2(symbol=ticker)
+        company_name = company_profile['name'].split(' ')[0]
+
+        color = 0x00ff00
+
+        quote = self.finhubClient.quote(ticker)
+
+        if quote['c'] >= quote['pc']:
+            color = 0x00ff00
+        else:
+            color = 0xff0000
+
+        output = {
+            'title':'Stock Ticker Quote',
+            'description':'USD Quote for '+company_name+' on '+date+' at '+hour_min,
+            'color':color,
+            'thumbnail':{
+                'url':company_profile['logo']
+            },
+            'fields':[
+                {
+                    'name':'Current',
+                    'value':'$'+str(quote['c'])
+                },
+                {
+                    'name':'Open',
+                    'value':'$'+str(quote['o'])
+                },
+                {
+                    'name':'High',
+                    'value':'$'+str(quote['h'])
+                },
+                {
+                    'name':'Low',
+                    'value':'$'+str(quote['l'])
+                },
+                {
+                    'name':'Previous Close',
+                    'value':'$'+str(quote['pc'])
+                }
+            ]
+        }
+
+        return output
+
     # #WIP
     # async def printPort(self, message):
     #     currServer = message.channel.guild
