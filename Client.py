@@ -10,17 +10,33 @@ class MyClient(discord.Client):
 
     def __init__(self):
         super().__init__()
+
         self.dbh = DBHandler.DBHandler('sexystonks.db')
         self.finhubClient = finnhub.Client(api_key=config('API_TOKEN'))
-        self.initBalance = 10000
+
+        self.initBalance = config('INITIAL_BALANCE')
+
+        if(not self.dbh.checkTable('config')):
+            utn = config('USER_TABLENAME')
+            urs = config('USER_ROWSTRING')
+            ttn = config('TRANSACTION_TABLENAME')
+            trs = config('TRANSACTION_ROWSTRING')
+            ptn = config('PORTFOLIO_TABLENAME')
+            prs = config('PORTFOLIO_ROWSTRING')
+            ctn = config('CONFIG_TABLENAME')
+            crs = config('CONFIG_ROWSTRING')
+            self.dbh.createTable(utn, urs)
+            self.dbh.createTable(ptn, prs)
+            self.dbh.createTable(ttn, trs)
+            self.dbh.createTable(ctn, crs)
 
     def isBuyingOpen(self):
         return True
-        ttime = datetime.datetime.now(tz=datetime.timezone.utc)
-        weekday = ttime.weekday()
-        openTime = datetime.datetime(year=ttime.year, month=ttime.month, day=ttime.day, hour=9, minute=30, tzinfo=timezone('US/Eastern'))
-        closeTime = datetime.datetime(year=ttime.year, month=ttime.month, day=ttime.day, hour=16, tzinfo=timezone('US/Eastern'))
-        if((ttime > openTime) & (ttime < closeTime) & (weekday!=5) & (weekday!=6)):
+        ctime = datetime.datetime.now(tz=datetime.timezone.utc)
+        weekday = ctime.weekday()
+        openTime = datetime.datetime(year=ctime.year, month=ctime.month, day=ctime.day, hour=9, minute=30, tzinfo=timezone('US/Eastern'))
+        closeTime = datetime.datetime(year=ctime.year, month=ctime.month, day=ctime.day, hour=16, tzinfo=timezone('US/Eastern'))
+        if((ctime > openTime) & (ctime < closeTime) & (weekday!=5) & (weekday!=6)):
             return True
         else:
             return False
@@ -67,11 +83,45 @@ class MyClient(discord.Client):
     async def on_ready(self):
         print('Logged on as', self.user)
 
+    async def printPort(self, message):
+        currServer = message.channel.guild
+        chanName = message.author.name.lower()+'-stocks'
+        foundChan = False
+        userChan = None
+        for chan in currServer.text_channels:
+            if(chan.name == chanName):
+                foundChan = True
+                userChan = chan
+                break
+
+        if(not foundChan):
+            catChan = None
+            for cat in currServer.categories:
+                if(cat.name == 'stonks'):
+                    catChan = cat
+            overwrites = {
+                currServer.default_role: discord.PermissionOverwrite(read_messages=False), 
+                message.author: discord.PermissionOverwrite(read_messages=True)
+                }
+            newCh = await currServer.create_text_channel(name=chanName, overwrites=overwrites, category=catChan)
+            userChan = newCh
+
+        stonks = self.dbh.retrieveStocks(message.author.id)
+        await userChan.send(embed=discord.Embed.from_dict({'title':'Current Stocks'}))
+        for k, v in stonks.items():
+            await userChan.send(k.upper()+'\nnum: '+str(v)+' spent: '+'200'+' worth: '+'300'+' gains: '+'100\n---')
+        
+
     #----------------------------core body of reactivity, create commands, etc here
     async def on_message(self, message):
         #don't respond to ourselves
         #be careful about awaiting everything and not returning, might evaluate more than one expects
         if message.author == self.user:
+            return
+
+        #-----------------------------new channel test---------------------------------------
+        if message.content.startswith('$testies'):
+            await self.printPort(message)
             return
 
         #--------------------------------create a new stock market game------------------------------
@@ -129,7 +179,7 @@ class MyClient(discord.Client):
             else:
                 await message.channel.send('You don\'t exist, say \"$register\" to join')
 
-        #---------------------------------------return value of assets---------------------------
+        #--------------------------------return the value of all assets---------------------------
         # prints liquid money and all stocks 
         if message.content.startswith('$balance'):
             if(not self.dbh.confirmUser(message.author.id)):
@@ -149,23 +199,23 @@ class MyClient(discord.Client):
 
             embed = discord.Embed.from_dict(
                 {
-                'title':'Balance of '+str(message.author),
-                'description': 'Total value of assets: ' + str(balance+total),
+                'title':'Balance of '+str(message.author.name),
+                'description': 'Total value of assets: $' + '{:.2f}'.format(round(balance+total, 2)),
                 'thumbnail':{
                     'url':str(message.author.avatar_url)
                 },
                 'fields':[
                     {
                         'name':'Liquid Amount',
-                        'value':str(round(balance, 2))
+                        'value':'$'+'{:.2f}'.format(round(balance, 2))
                     },
                     {
                         'name':'Stock Amount',
-                        'value':str(round(total, 2))
+                        'value':'$'+'{:.2f}'.format(round(total, 2))
                     },
                     {
                         'name':'Best Stock',
-                        'value':bigK+': worth $'+str(round(bigV, 2))
+                        'value':bigK+': worth $'+'{:.2f}'.format(round(bigV, 2))
                     },
                 ]
                 }

@@ -20,14 +20,15 @@
     - Track player vs. player performance over the duration of the game period.
     
     
-### Update log
+### TODO
 
-- 10/8/20 - 10/16/20
-    - Goals:
-        - Ticker price lookup
-        - Initial money
-        - Game instance creation
-        - Database creation
-        
-    - Started development. Will focus on the creation of a "Game" for now. 
-        
+- db related (Surya)
+    - Separate database buy/sell functions
+    - change sql queries to use global variables instead of hardcoded table names
+    - database implementing (un)realized gains
+
+- client refactor (Gordon)
+    - separate out client
+
+- :(
+    
