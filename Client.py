@@ -1,6 +1,5 @@
-import discord, finnhub, datetime
-import sqlite3
-import DBHandler
+import discord
+from Stonks import Stonks
 from decouple import config
 from pytz import timezone
 
@@ -11,35 +10,10 @@ class MyClient(discord.Client):
     def __init__(self):
         super().__init__()
 
-        self.dbh = DBHandler.DBHandler('sexystonks.db')
-        self.finhubClient = finnhub.Client(api_key=config('API_TOKEN'))
+        self.stonkState = Stonks()
 
-        self.initBalance = config('INITIAL_BALANCE')
-
-        if(not self.dbh.checkTable('config')):
-            utn = config('USER_TABLENAME')
-            urs = config('USER_ROWSTRING')
-            ttn = config('TRANSACTION_TABLENAME')
-            trs = config('TRANSACTION_ROWSTRING')
-            ptn = config('PORTFOLIO_TABLENAME')
-            prs = config('PORTFOLIO_ROWSTRING')
-            ctn = config('CONFIG_TABLENAME')
-            crs = config('CONFIG_ROWSTRING')
-            self.dbh.createTable(utn, urs)
-            self.dbh.createTable(ptn, prs)
-            self.dbh.createTable(ttn, trs)
-            self.dbh.createTable(ctn, crs)
-
-    def isBuyingOpen(self):
-        return True
-        ctime = datetime.datetime.now(tz=datetime.timezone.utc)
-        weekday = ctime.weekday()
-        openTime = datetime.datetime(year=ctime.year, month=ctime.month, day=ctime.day, hour=9, minute=30, tzinfo=timezone('US/Eastern'))
-        closeTime = datetime.datetime(year=ctime.year, month=ctime.month, day=ctime.day, hour=16, tzinfo=timezone('US/Eastern'))
-        if((ctime > openTime) & (ctime < closeTime) & (weekday!=5) & (weekday!=6)):
-            return True
-        else:
-            return False
+    def parseBuy(self, message):
+        return
 
     def buy(self, user, ticker, shares):
         try:
@@ -140,6 +114,11 @@ class MyClient(discord.Client):
         #------------------------------------------buy shares in a stock---------------------------
         #pulls stock cost and buys X number
         if message.content.startswith('$buy'):
+            #confirm legal
+            #parse parameters
+            #send to stonk game
+            #handle error with good message
+            self.stonkState.buy({})
             if(not self.isBuyingOpen()):
                 await message.channel.send('It\'s too late! Try again tomorrow')
                 return
