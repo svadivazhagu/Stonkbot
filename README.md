@@ -23,12 +23,12 @@
 ### TODO
 
 - db related (Surya)
-    - Separate database buy/sell functions
-    - change sql queries to use global variables instead of hardcoded table names
+    - Separate database buy/sell functions:DONE
+    - change sql queries to use global variables instead of hardcoded table names:UNADVISABLE?
     - database implementing (un)realized gains
 
 - client refactor (Gordon)
-    - separate out client
+    - separate out client:DONE
 
-- :(
+- 
     

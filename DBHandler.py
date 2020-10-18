@@ -73,7 +73,10 @@ class DBHandler:
         stonks = self.dbconn.execute('SELECT * FROM Portfolios WHERE userid=?', (user, )).fetchall()
         output = {}
         for row in stonks:
-            output[row[1]] = row[2]
+            output[row[1]] = {
+                'shares':row[2],
+                'spent':row[3]
+            }
         return output
 
     def retrieveBalance(self, user):
@@ -82,10 +85,6 @@ class DBHandler:
 
     def checkTable(self, tablename):
         return self.dbconn.execute('SELECT count(name) FROM sqlite_master WHERE type=\'table\' AND name=?', (tablename,)).fetchone()[0]==1
-
-    def createTable(self, tablename, rowString):
-        self.dbconn.execute('CREATE table ? ?', (tablename, rowString))
-        self.dbconn.commit()
 
 
 

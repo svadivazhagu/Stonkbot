@@ -4,6 +4,7 @@ import DBHandler
 from StonkErrors import *
 from decouple import config
 from pytz import timezone
+import discord
 
 
 class Stonks:
@@ -98,10 +99,11 @@ class Stonks:
         bigV = 0
         for k, v in stonks.items():
             price = self.finhubClient.quote(k)['c']
-            total += price*v
-            if(price*v>bigV):
+            numShares = v['shares']
+            total += price*numShares
+            if(price*numShares>bigV):
                 bigK = k
-                bigV = price*v
+                bigV = price*numShares
 
         embedDict = {
             'title':'Balance of '+str(user.name),
@@ -123,7 +125,7 @@ class Stonks:
                     'value':bigK+': worth $'+'{:.2f}'.format(round(bigV, 2))
                 },
             ]
-            }
+        }
 
         return embedDict
 
@@ -184,33 +186,34 @@ class Stonks:
         return output
 
     # #WIP
-    # async def printPort(self, message):
-    #     currServer = message.channel.guild
-    #     chanName = message.author.name.lower()+'-stocks'
-    #     foundChan = False
-    #     userChan = None
-    #     for chan in currServer.text_channels:
-    #         if(chan.name == chanName):
-    #             foundChan = True
-    #             userChan = chan
-    #             break
+    async def printPort(self, message):
+        currServer = message.channel.guild
+        chanName = message.author.name.lower()+'-stocks'
+        foundChan = False
+        userChan = None
+        for chan in currServer.text_channels:
+            if(chan.name == chanName):
+                foundChan = True
+                userChan = chan
+                break
 
-    #     if(not foundChan):
-    #         catChan = None
-    #         for cat in currServer.categories:
-    #             if(cat.name == 'stonks'):
-    #                 catChan = cat
-    #         overwrites = {
-    #             currServer.default_role: discord.PermissionOverwrite(read_messages=False), 
-    #             message.author: discord.PermissionOverwrite(read_messages=True)
-    #             }
-    #         newCh = await currServer.create_text_channel(name=chanName, overwrites=overwrites, category=catChan)
-    #         userChan = newCh
+        if(not foundChan):
+            catChan = None
+            for cat in currServer.categories:
+                if(cat.name == 'stonks'):
+                    catChan = cat
+            overwrites = {
+                currServer.default_role: discord.PermissionOverwrite(read_messages=False), 
+                message.author: discord.PermissionOverwrite(read_messages=True)
+                }
+            newCh = await currServer.create_text_channel(name=chanName, overwrites=overwrites, category=catChan)
+            userChan = newCh
 
-    #     stonks = self.dbh.retrieveStocks(message.author.id)
-    #     await userChan.send(embed=discord.Embed.from_dict({'title':'Current Stocks'}))
-    #     for k, v in stonks.items():
-    #         await userChan.send(k.upper()+'\nnum: '+str(v)+' spent: '+'200'+' worth: '+'300'+' gains: '+'100\n---')
+        stonks = self.dbh.retrieveStocks(message.author.id)
+        await userChan.send(embed=discord.Embed.from_dict({'title':'Current Stocks'}))
+        for k, v in stonks.items():
+            price = self.finhubClient.quote(k)['c']
+            await userChan.send(k.upper()+'\nnum: '+str(v['shares'])+' spent: '+str(v['spent'])+' worth: '+str(v['shares']*price)+' gains: '+str(v['shares']*price-v['spent'])+'\n---')
 
     #----------------------------------------------------------------------
 

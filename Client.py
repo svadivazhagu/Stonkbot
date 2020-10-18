@@ -30,6 +30,7 @@ class MyClient(discord.Client):
 
         #-----------------------------new channel test---------------------------------------
         if message.content.startswith('$testies'):
+            await self.stonkState.printPort(message)
             return
 
         #--------------------------------create a new stock market game------------------------------
