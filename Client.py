@@ -4,6 +4,8 @@ from StonkErrors import *
 from decouple import config
 from pytz import timezone
 
+guildID = '765387846680313857'
+
 
 class MyClient(discord.Client):
     # setting up finnhub client
@@ -14,7 +16,10 @@ class MyClient(discord.Client):
         self.stonkState = Stonks()
 
     async def on_ready(self):
-        print('Logged on as', self.user)
+        for guild in client.guilds:
+            if guild.id == guildID:
+                break
+        print(f'{client.user} is connected to {guild.name}')
 
     #----------------------------core body of reactivity, create commands, etc here
     async def on_message(self, message):
@@ -67,7 +72,7 @@ class MyClient(discord.Client):
         if message.content.startswith('$balance'):
             try:
                 embed = self.stonkState.balance(message.author)
-                await message.channel.send(embed=embed)
+                await message.channel.send(embed=discord.Embed.from_dict(embed))
             except UnrecognizedPlayerError:
                 await message.channel.send('You don\'t exist, type $register to join')
             

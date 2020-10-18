@@ -14,18 +14,7 @@ class Stonks:
         self.initBalance = config('INITIAL_BALANCE')
 
         if(not self.dbh.checkTable('config')):
-            utn = config('USER_TABLENAME')
-            urs = config('USER_ROWSTRING')
-            ttn = config('TRANSACTION_TABLENAME')
-            trs = config('TRANSACTION_ROWSTRING')
-            ptn = config('PORTFOLIO_TABLENAME')
-            prs = config('PORTFOLIO_ROWSTRING')
-            ctn = config('CONFIG_TABLENAME')
-            crs = config('CONFIG_ROWSTRING')
-            self.dbh.createTable(utn, urs)
-            self.dbh.createTable(ptn, prs)
-            self.dbh.createTable(ttn, trs)
-            self.dbh.createTable(ctn, crs)
+            self.dbh.initializeTables(self.initBalance)
 
     #---------------------------client-callable functions------------------
 
@@ -77,7 +66,7 @@ class Stonks:
             sellPrice = price*shares
 
             #this probably will become insert/update calls
-            self.dbh.buy(userid, ticker, sellPrice, shares)
+            self.dbh.sell(userid, ticker, sellPrice, shares)
             return 'Successful transaction!'
 
         except NegativeSharesError:
